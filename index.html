@@ -160,8 +160,8 @@ input,select{font-family:inherit}
 .nav{position:fixed;bottom:0;left:0;right:0;z-index:60;background:var(--bg);background:color-mix(in srgb,var(--bg) 92%,transparent);
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
-.nav-in{max-width:680px;margin:0 auto;display:flex;flex-direction:row;flex-wrap:nowrap;height:var(--nav-h)}
-.nav-in button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+.nav-in{max-width:680px;width:100%;margin:0 auto;display:flex;flex-direction:row;flex-wrap:nowrap;height:var(--nav-h);justify-content:space-around}
+.nav-in button{flex:1 1 25%;width:25%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   color:var(--tx3);font-size:11px;transition:.2s}
 .nav-in button.on{color:var(--ac)}
 .nav-in svg{width:22px;height:22px;flex-shrink:0}
@@ -261,7 +261,7 @@ input,select{font-family:inherit}
     <div class="field" id="confTimeF" style="display:none"><label>每题限时（秒）</label>
       <div class="chips" id="confTime"></div>
     </div>
-    <div class="field" id="confGapF" style="display:none"><label>错题重现间隔（隔几题后重现）</label>
+    <div class="field" id="confGapF" style="display:none"><label>错题重现间隔</label>
       <div class="chips" id="confGap"></div>
     </div>
     <div class="field" id="confStreakF" style="display:none"><label>连对几次后移出循环</label>
@@ -685,7 +685,8 @@ function nextQ(){
       // 一轮结束: 从循环队列挑重现题 — 优先最早入队且未被本回合最近消化的
       for(var k=0;k<Quiz.loopQ.length;k++){
         var e=Quiz.loopQ[k];
-        if(Quiz.rounds - (e.lastSeen||0) >= Quiz.loopGap){ next=e.idx; e.lastSeen=Quiz.rounds; break; }
+        var gapv = Quiz.loopGap==='rand'? (1+Math.floor(Math.random()*20)) : Quiz.loopGap;
+        if(Quiz.rounds - (e.lastSeen||0) >= gapv){ next=e.idx; e.lastSeen=Quiz.rounds; break; }
       }
       if(next<0 && Quiz.loopQ.length){ next=Quiz.loopQ[0].idx; Quiz.loopQ[0].lastSeen=Quiz.rounds; }
     }
@@ -769,7 +770,7 @@ function openConf(mode){
   gf.style.display= spec.types.indexOf('gap')>=0?'block':'none';
   if(spec.types.indexOf('gap')>=0 && !gf.dataset.init){
     gf.dataset.init='1';
-    document.getElementById('confGap').innerHTML=[3,5,8,10,15].map(function(v){return '<button class="chip" data-gap="'+v+'">隔'+v+'题</button>';}).join('');
+    document.getElementById('confGap').innerHTML='<button class="chip on" data-gap="rand">随机 1-20 题</button>';
   }
   var sf=document.getElementById('confStreakF');
   sf.style.display= spec.types.indexOf('streak')>=0?'block':'none';
@@ -783,7 +784,7 @@ function openConf(mode){
     confTime=10;
   }
   if(spec.types.indexOf('gap')>=0){
-    document.querySelectorAll('#confGap .chip').forEach(function(c){ c.classList.toggle('on', +c.dataset.gap===confGap); });
+    
   }
   if(spec.types.indexOf('streak')>=0){
     document.querySelectorAll('#confStreak .chip').forEach(function(c){ c.classList.toggle('on', +c.dataset.streak===confStreak); });
@@ -796,7 +797,7 @@ function openConf(mode){
   rows[0].style.display = spec.types.indexOf('qshuf')>=0?'flex':'none';
   rows[1].style.display = spec.types.indexOf('oshuf')>=0?'flex':'none';
 }
-var confTime=10, confGap=5, confStreak=3;
+var confTime=10, confGap='rand', confStreak=3;
 function confPool(){
   var pool=[];
   BANK.forEach(function(q,i){
