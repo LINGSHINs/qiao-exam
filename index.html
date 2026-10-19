@@ -538,7 +538,10 @@ function renderQ(){
   var noEl = document.querySelector('.qtop .qno');
   // 题号行在qtop内, 这里用type+timer行即可; 补充统计到qtext前
   var rt='';
-  if(Quiz.mode==='loop'){ var ent=null; Quiz.loopQ.forEach(function(e){ if(e.idx===Quiz.i) ent=e; }); if(ent) rt=' · 重现(还需连对'+ent.need+')'; }
+  if(Quiz.mode==='loop'){
+    var inQ=Quiz.loopQ.some(function(e){ return e.idx===Quiz.i; });
+    if(inQ){ var nm=(Quiz.needMap&&Quiz.needMap[Quiz.i]!=null)?Quiz.needMap[Quiz.i]:Quiz.loopStreak; rt=' · 重现(还需连对'+nm+')'; }
+  }
   document.getElementById('qType').textContent = (TYPEMAP[q.type]||q.type) + ' · 累计对'+(st.r||0)+'/错'+(st.w||0) + rt;
 
   var wrap = document.getElementById('qOpts');
