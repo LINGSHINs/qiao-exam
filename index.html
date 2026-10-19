@@ -616,6 +616,7 @@ function renderQ(){
     // 超时标记: 显示正确答案
     fb.className='feedback show bad';
     fb.textContent='超时 · 正确答案 '+ansLetters(q.ans);
+    buzz(false);
     if(q.exp){ document.getElementById('qExpTx').textContent=q.exp; ex.classList.add('show'); }
   } else if(Quiz.opt.recite){
     // 背题模式: 未作答时直接显示答案
@@ -700,7 +701,7 @@ function pickOpt(oi){
     if(Quiz.opt.instant){
       Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
       var right = q.ans[0]===oi;
-      recAnswer(q, right); recordRound(right); beep(right);
+      recAnswer(q, right); recordRound(right); beep(right); buzz(right);
       afterJudge(right);
     }
     renderQ();
@@ -712,7 +713,7 @@ function judgeMulti(){
   if(!a.length) return;
   Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
   var right=sameSet(a,q.ans);
-  recAnswer(q,right); recordRound(right); beep(right);
+  recAnswer(q,right); recordRound(right); beep(right); buzz(right);
   afterJudge(right);
   renderQ();
 }
@@ -1095,6 +1096,11 @@ bindSw('swQshuf','qshuf'); bindSw('swOshuf','oshuf');
   document.getElementById(id).addEventListener('click',function(){ setSw('swAuto',S.auto); setSw('swAuto2',S.auto); });
 });
 
+
+/* ---------- 振动反馈 ---------- */
+function buzz(right){
+  try{ if(navigator.vibrate) navigator.vibrate(right? 30 : [80,40,80]); }catch(e){}
+}
 
 /* ---------- 主题粒子特效 ---------- */
 var pfxCanvas=null, pfxCtx=null, pfxParts=[], pfxRAF=null, pfxTheme=null;
