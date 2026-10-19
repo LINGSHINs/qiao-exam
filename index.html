@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-t="ink">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#101418">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -38,7 +38,9 @@
   --ok:#5fb08a; --bad:#d07070; --line:#232b3d; --shadow:0 4px 26px rgba(0,0,0,.5); }
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{touch-action:manipulation}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+body{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none;-webkit-tap-highlight-color:transparent}
+input,textarea{-webkit-user-select:text;user-select:auto}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
   font-size:16px;line-height:1.65;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));transition:background .3s}
 .app{max-width:680px;margin:0 auto;padding:0 18px}
@@ -139,7 +141,10 @@ input,select{font-family:inherit}
 .qnav{display:flex;justify-content:space-between;align-items:center;padding:14px 2px}
 .qnav button{color:var(--tx2);font-size:14px;padding:10px 16px;border-radius:12px}
 .qnav button:active{background:var(--card)}
-.feedback{margin-top:12px;font-size:14px;font-weight:600;display:none}
+.feedback{margin-top:12px;font-size:14px;font-weight:600;height:22px;line-height:22px;overflow:hidden;visibility:hidden;color:transparent;white-space:nowrap}
+.feedback.show{visibility:visible;color:inherit}
+.feedback.ok.show{color:var(--ok)}
+.feedback.bad.show{color:var(--bad)}
 .feedback.ok{display:block;color:var(--ok)}
 .feedback.bad{display:block;color:var(--bad)}
 
@@ -566,13 +571,13 @@ function renderQ(){
   sb.classList.toggle('disabled', !!judgedNow);
   if(ans!==undefined && ans.length && ans[0]!==-1 && sameSetNeedJudge(Quiz,q,ans)){
     var right = sameSet(ans, q.ans);
-    fb.className='feedback '+(right?'ok':'bad');
+    fb.className='feedback show '+(right?'ok':'bad');
     fb.textContent = right? '回答正确':'回答错误 · 正确答案 '+ansLetters(q.ans);
     if(q.exp){ document.getElementById('qExpTx').textContent=q.exp; ex.classList.add('show'); }
     if(Quiz.opt.instant && Quiz.opt.auto && right && !Quiz.done) schedAuto();
   } else if(ans && ans.length && ans[0]===-1){
     // 超时标记: 显示正确答案
-    fb.className='feedback bad';
+    fb.className='feedback show bad';
     fb.textContent='超时 · 正确答案 '+ansLetters(q.ans);
     if(q.exp){ document.getElementById('qExpTx').textContent=q.exp; ex.classList.add('show'); }
   } else if(Quiz.opt.recite){
