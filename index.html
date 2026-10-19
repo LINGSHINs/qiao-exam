@@ -586,8 +586,10 @@ function renderQ(){
     document.getElementById('tinyFill').style.width = ((Quiz.i)/Quiz.qs.length*100)+'%';
   }
   // 上一题按钮
-  document.getElementById('qPrev').style.visibility = Quiz.i>0? 'visible':'hidden';
+  document.getElementById('qPrev').style.visibility = (Quiz.mode==='loop')? 'hidden' : (Quiz.i>0? 'visible':'hidden');
   document.getElementById('qNext').textContent = Quiz.i<Quiz.qs.length-1? '下一题':'完成';
+  var cb=document.getElementById('qCardBtn');
+  cb.style.display = (Quiz.mode==='loop')? 'none':'inline-block';
   // 计时
   stopTimer();
   if(Quiz.opt.timer && ans===undefined && !Quiz.opt.recite){ startTimer(Quiz.opt.timer); }
@@ -670,8 +672,8 @@ function judgeMulti(){
 function afterJudge(right){
   if(!Quiz||Quiz.mode!=='loop') return;
   var qi=Quiz.i;
-  // 重现准备: 保留历史统计, 清作答痕迹以便重做
-  delete Quiz.ans[qi]; delete Quiz.judged[qi];
+  Quiz.__seen = Quiz.__seen||{};
+  Quiz.__seen[qi]=true;  // 标记已做过, 重现前清作答痕迹
   var ent=null;
   Quiz.loopQ.forEach(function(e){ if(e.idx===qi) ent=e; });
   if(right){
@@ -702,7 +704,11 @@ function nextQ(){
     var due=loopTick();
     if(Quiz.linIdx===undefined) Quiz.linIdx=0;
     // 优先: 到期重现题
-    if(due!==null && due!==undefined){ Quiz.i=due; renderQ(); return; }
+    if(due!==null && due!==undefined){
+      Quiz.i=due;
+      delete Quiz.ans[due]; delete Quiz.judged[due];  // 重现: 清上次作答
+      renderQ(); return;
+    }
     // 线性前进
     if(Quiz.linIdx<Quiz.qs.length-1){ Quiz.linIdx++; Quiz.i=Quiz.linIdx; renderQ(); return; }
     // 线性走完: 只消化循环队列(等待due) — 若全部dueIn>0, 快进到最近的到期
@@ -712,7 +718,8 @@ function nextQ(){
       Quiz.rounds+=minE.dueIn;
       Quiz.loopQ.forEach(function(e){ e.dueIn-=minE.dueIn; });
       Quiz.i=minE.idx;
-      Quiz.loopQ.splice(Quiz.loopQ.indexOf(minE),1);  // 摘出, 作答后afterJudge决定是否重新入队
+      Quiz.loopQ.splice(Quiz.loopQ.indexOf(minE),1);
+      delete Quiz.ans[Quiz.i]; delete Quiz.judged[Quiz.i];
       renderQ(); return;
     }
     finishQuiz(); return;
