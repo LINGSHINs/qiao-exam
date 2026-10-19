@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="外汇考试">
+<link rel="manifest" id="manifestLink">
+<link rel="apple-touch-icon" id="appleIcon">
 <title>外汇考试</title>
 <style>
 :root{
@@ -579,9 +584,10 @@ function renderQ(){
   if(Quiz.opt.recite) markRecite();
   // 进度
   if(Quiz.mode==='loop'){
-    var remain = Quiz.loopQ.length + Math.max(0, Quiz.qs.length-1-Quiz.i) + (Quiz.loopQ.some(function(e){return e.idx===Quiz.i;})?1:0);
-    document.getElementById('tinyLbl') && (document.getElementById('tinyLbl').textContent='剩 '+remain+' 题');
-    document.getElementById('tinyFill').style.width = (100-remain/Quiz.qs.length*100)+'%';
+    var grad=Quiz.graduated||0;
+    var remain=Quiz.qs.length-grad;
+    document.getElementById('tinyLbl') && (document.getElementById('tinyLbl').textContent='循环题库剩 '+remain+' / '+Quiz.qs.length);
+    document.getElementById('tinyFill').style.width = (grad/Quiz.qs.length*100)+'%';
   } else {
     document.getElementById('tinyFill').style.width = ((Quiz.i)/Quiz.qs.length*100)+'%';
   }
@@ -672,16 +678,23 @@ function judgeMulti(){
 function afterJudge(right){
   if(!Quiz||Quiz.mode!=='loop') return;
   var qi=Quiz.i;
-  Quiz.__seen = Quiz.__seen||{};
-  Quiz.__seen[qi]=true;  // 标记已做过, 重现前清作答痕迹
-  var ent=null;
-  Quiz.loopQ.forEach(function(e){ if(e.idx===qi) ent=e; });
+  Quiz.needMap=Quiz.needMap||{};
+  // 先把该题从队列摘出(答完的题不留在队列), 进度存needMap
+  for(var k=0;k<Quiz.loopQ.length;k++){ if(Quiz.loopQ[k].idx===qi){ Quiz.loopQ.splice(k,1); break; } }
+  var need = Quiz.needMap[qi];
+  if(need===undefined) need=Quiz.loopStreak;  // 首次作答
   if(right){
-    if(ent){ ent.need--; if(ent.need<=0){ /*毕业*/ } else { ent.dueIn=2+Math.floor(Math.random()*19); Quiz.loopQ.push(ent); } }
+    need--;
+    if(need<=0){
+      Quiz.graduated=(Quiz.graduated||0)+1;  // 连对K次: 毕业移出循环题库
+      delete Quiz.needMap[qi];
+      return;
+    }
+    Quiz.needMap[qi]=need;
+    Quiz.loopQ.push({idx:qi, dueIn:2+Math.floor(Math.random()*19)});
   } else {
-    var din=2+Math.floor(Math.random()*19);
-    if(ent){ ent.need=Quiz.loopStreak; ent.dueIn=din; Quiz.loopQ.push(ent); }
-    else { Quiz.loopQ.push({idx:qi, need:Quiz.loopStreak, dueIn:din}); }
+    Quiz.needMap[qi]=Quiz.loopStreak;  // 答错: 连对归零
+    Quiz.loopQ.push({idx:qi, dueIn:2+Math.floor(Math.random()*19)});
   }
 }
 function recordRound(right){ if(right) Quiz.right++; else Quiz.wrongn++; }
@@ -706,12 +719,12 @@ function nextQ(){
     // 优先: 到期重现题
     if(due!==null && due!==undefined){
       Quiz.i=due;
-      delete Quiz.ans[due]; delete Quiz.judged[due];  // 重现: 清上次作答
+      delete Quiz.ans[due]; delete Quiz.judged[due];
       renderQ(); return;
     }
     // 线性前进
     if(Quiz.linIdx<Quiz.qs.length-1){ Quiz.linIdx++; Quiz.i=Quiz.linIdx; renderQ(); return; }
-    // 线性走完: 只消化循环队列(等待due) — 若全部dueIn>0, 快进到最近的到期
+    // 线性走完: 只消化循环队列
     if(Quiz.loopQ.length){
       var minE=null;
       Quiz.loopQ.forEach(function(e){ if(!minE||e.dueIn<minE.dueIn) minE=e; });
@@ -743,7 +756,8 @@ function finishQuiz(){
   document.getElementById('rSub').textContent=(MODE_TITLE[Quiz.mode]||'练习')+' · 共 '+tot+' 题'+(Quiz.mode==='loop'?' · '+Quiz.rounds+' 轮':'');
   var sg=document.getElementById('rStats');
   sg.innerHTML = statCells([
-    [Quiz.right,'答对'],[Quiz.wrongn,'答错'],[fmtPct(Quiz.right,tot),'正确率'],[Quiz.qs.length,'总题数']
+    [Quiz.right,'答对'],[Quiz.wrongn,'答错'],[fmtPct(Quiz.right,tot),'正确率'],
+    Quiz.mode==='loop'? [(Quiz.graduated||0)+'/'+Quiz.qs.length,'已毕业'] : [Quiz.qs.length,'总题数']
   ]);
   if(Quiz.opt.loop && Quiz.wrongn>0){
     // 循环模式: 错题重入队列尾部
@@ -1039,7 +1053,31 @@ bindSw('swQshuf','qshuf'); bindSw('swOshuf','oshuf');
   document.getElementById(id).addEventListener('click',function(){ setSw('swAuto',S.auto); setSw('swAuto2',S.auto); });
 });
 
+/* ---------- PWA: 动态icon+manifest ---------- */
+function initPWA(){
+  try{
+    var c=document.createElement('canvas'); c.width=512; c.height=512;
+    var x=c.getContext('2d');
+    x.fillStyle='#101418'; x.fillRect(0,0,512,512);
+    x.fillStyle='#8fae8b';
+    x.font='bold 300px -apple-system, "PingFang SC", sans-serif';
+    x.textAlign='center'; x.textBaseline='middle';
+    x.fillText('考',256,266);
+    var icon=c.toDataURL('image/png');
+    var li=document.getElementById('appleIcon'); if(li) li.href=icon;
+    var man={
+      name:'外汇考试', short_name:'外汇考试',
+      start_url: location.pathname+location.search,
+      display:'standalone', background_color:'#101418', theme_color:'#101418',
+      icons:[{src:icon,sizes:'512x512',type:'image/png'}]
+    };
+    var ml=document.getElementById('manifestLink');
+    if(ml) ml.href='data:application/manifest+json;base64,'+btoa(unescape(encodeURIComponent(JSON.stringify(man))));
+  }catch(e){}
+}
+
 /* ---------- init ---------- */
+initPWA();
 applyTheme(S.theme);
 setSw('swInstant',S.instant); setSw('swInstant2',S.instant);
 setSw('swAuto',S.auto); setSw('swAuto2',S.auto);
