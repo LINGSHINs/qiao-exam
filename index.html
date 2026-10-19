@@ -105,6 +105,7 @@ input,select{font-family:inherit}
 .sw i{position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:var(--tx3);transition:.2s}
 .sw.on{background:var(--ac);border-color:var(--ac)}
 .sw.on i{left:21px;background:#fff}
+.btn.disabled,.btn:disabled{opacity:.45;pointer-events:none;}
 .btn{display:block;width:100%;padding:15px;border-radius:14px;background:var(--ac);color:var(--bg);
   font-size:16px;font-weight:600;text-align:center;transition:.15s;letter-spacing:.04em}
 .btn:active{transform:scale(.97);filter:brightness(1.1)}
@@ -557,29 +558,26 @@ function renderQ(){
   var fb=document.getElementById('qFb'), ex=document.getElementById('qExp'), act=document.getElementById('qAct');
   fb.className='feedback'; fb.textContent='';
   ex.classList.remove('show');
-  act.style.display='none';
+  // 确认按钮常驻: 已判定→禁用态; 未判定→可点
+  var judgedNow = sameSetNeedJudge(Quiz,q,ans) || (ans && ans.length && ans[0]===-1);
+  act.style.display='flex';
+  var sb=document.getElementById('qSubmit');
+  sb.disabled=!!judgedNow;
+  sb.classList.toggle('disabled', !!judgedNow);
   if(ans!==undefined && ans.length && ans[0]!==-1 && sameSetNeedJudge(Quiz,q,ans)){
-    if(Quiz.opt.instant){
-      var right = sameSet(ans, q.ans);
-      fb.className='feedback '+(right?'ok':'bad');
-      fb.textContent = right? '回答正确':'回答错误 · 正确答案 '+ansLetters(q.ans);
-      beep(right);
-      if(q.exp){ document.getElementById('qExpTx').textContent=q.exp; ex.classList.add('show'); }
-      if(Quiz.opt.auto && right && !Quiz.done) schedAuto();
-    } else {
-      act.style.display='flex';
-    }
+    var right = sameSet(ans, q.ans);
+    fb.className='feedback '+(right?'ok':'bad');
+    fb.textContent = right? '回答正确':'回答错误 · 正确答案 '+ansLetters(q.ans);
+    if(q.exp){ document.getElementById('qExpTx').textContent=q.exp; ex.classList.add('show'); }
+    if(Quiz.opt.instant && Quiz.opt.auto && right && !Quiz.done) schedAuto();
   } else if(ans && ans.length && ans[0]===-1){
     // 超时标记: 显示正确答案
     fb.className='feedback bad';
     fb.textContent='超时 · 正确答案 '+ansLetters(q.ans);
-    beep(false);
     if(q.exp){ document.getElementById('qExpTx').textContent=q.exp; ex.classList.add('show'); }
   } else if(Quiz.opt.recite){
     // 背题模式: 未作答时直接显示答案
     markRecite();
-  } else {
-    act.style.display='flex';
   }
   if(Quiz.opt.recite) markRecite();
   // 进度
@@ -659,7 +657,7 @@ function pickOpt(oi){
     if(Quiz.opt.instant){
       Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
       var right = q.ans[0]===oi;
-      recAnswer(q, right); recordRound(right);
+      recAnswer(q, right); recordRound(right); beep(right);
       afterJudge(right);
     }
     renderQ();
@@ -671,7 +669,7 @@ function judgeMulti(){
   if(!a.length) return;
   Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
   var right=sameSet(a,q.ans);
-  recAnswer(q,right); recordRound(right);
+  recAnswer(q,right); recordRound(right); beep(right);
   afterJudge(right);
   renderQ();
 }
