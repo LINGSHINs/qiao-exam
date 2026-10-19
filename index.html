@@ -218,7 +218,7 @@ input,select{font-family:inherit}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h.01M11 9h.01M15 9h.01M7 13h.01M11 13h.01M15 13h.01M7 17h10"/></svg>
     </button>
   </div>
-  <div style="padding:0 18px 8px"><div class="tinybar"><i id="tinyFill" style="width:0"></i></div></div>
+  <div style="padding:0 18px 8px;display:flex;align-items:center;gap:8px"><div class="tinybar"><i id="tinyFill" style="width:0"></i></div><span id="tinyLbl" style="font-size:11px;color:var(--tx3);white-space:nowrap;font-variant-numeric:tabular-nums"></span></div>
 </header>
 
 <main class="app" id="main">
@@ -516,6 +516,8 @@ function renderQ(){
   if(!Quiz) return;
   var q = curQ();
   if(!q){ finishQuiz(); return; }
+  if(Quiz.mode==='loop' && Quiz.i===Quiz.__lastIdx && Quiz.__reentry){ /*重现*/ }
+  Quiz.__lastIdx=Quiz.i;
   show('vQuiz');
   document.getElementById('topTitle').textContent = MODE_TITLE[Quiz.mode]||'外汇考试';
   document.getElementById('qType').textContent = TYPEMAP[q.type]||q.type;
@@ -576,7 +578,13 @@ function renderQ(){
   }
   if(Quiz.opt.recite) markRecite();
   // 进度
-  document.getElementById('tinyFill').style.width = ((Quiz.i)/Quiz.qs.length*100)+'%';
+  if(Quiz.mode==='loop'){
+    var remain = Quiz.loopQ.length + Math.max(0, Quiz.qs.length-1-Quiz.i) + (Quiz.loopQ.some(function(e){return e.idx===Quiz.i;})?1:0);
+    document.getElementById('tinyLbl') && (document.getElementById('tinyLbl').textContent='剩 '+remain+' 题');
+    document.getElementById('tinyFill').style.width = (100-remain/Quiz.qs.length*100)+'%';
+  } else {
+    document.getElementById('tinyFill').style.width = ((Quiz.i)/Quiz.qs.length*100)+'%';
+  }
   // 上一题按钮
   document.getElementById('qPrev').style.visibility = Quiz.i>0? 'visible':'hidden';
   document.getElementById('qNext').textContent = Quiz.i<Quiz.qs.length-1? '下一题':'完成';
@@ -662,36 +670,52 @@ function judgeMulti(){
 function afterJudge(right){
   if(!Quiz||Quiz.mode!=='loop') return;
   var qi=Quiz.i;
+  // 重现准备: 保留历史统计, 清作答痕迹以便重做
+  delete Quiz.ans[qi]; delete Quiz.judged[qi];
   var ent=null;
   Quiz.loopQ.forEach(function(e){ if(e.idx===qi) ent=e; });
   if(right){
-    if(ent){ ent.need--; if(ent.need<=0){ Quiz.loopQ.splice(Quiz.loopQ.indexOf(ent),1); } }
+    if(ent){ ent.need--; if(ent.need<=0){ /*毕业*/ } else { ent.dueIn=2+Math.floor(Math.random()*19); Quiz.loopQ.push(ent); } }
   } else {
-    if(!ent){ Quiz.loopQ.push({idx:qi, need:Quiz.loopStreak}); }
-    else { ent.need=Quiz.loopStreak; }
+    var din=2+Math.floor(Math.random()*19);
+    if(ent){ ent.need=Quiz.loopStreak; ent.dueIn=din; Quiz.loopQ.push(ent); }
+    else { Quiz.loopQ.push({idx:qi, need:Quiz.loopStreak, dueIn:din}); }
   }
 }
 function recordRound(right){ if(right) Quiz.right++; else Quiz.wrongn++; }
 
+function loopTick(){
+  // 每答完一题: 队列倒计时-1, 到0的题生成重现任务
+  if(!Quiz||Quiz.mode!=='loop') return null;
+  var due=null;
+  Quiz.loopQ.forEach(function(e){ e.dueIn--; });
+  for(var k=0;k<Quiz.loopQ.length;k++){
+    if(Quiz.loopQ[k].dueIn<=0){ due=Quiz.loopQ[k].idx; Quiz.loopQ.splice(k,1); break; }
+  }
+  return due;
+}
 function nextQ(){
   clearTimeout(autoT);
   if(!Quiz||Quiz.done) return;
   if(Quiz.mode==='loop'){
-    // 找下一个: 沿队列前进; 走到尾部且有循环错题 → 从头找第一个"距上次见>=gap"的循环题
     Quiz.rounds++;
-    var next=-1;
-    for(var j=Quiz.i+1;j<Quiz.qs.length;j++){ next=j; break; }
-    if(next<0 && Quiz.loopQ.length){
-      // 一轮结束: 从循环队列挑重现题 — 优先最早入队且未被本回合最近消化的
-      for(var k=0;k<Quiz.loopQ.length;k++){
-        var e=Quiz.loopQ[k];
-        var gapv = Quiz.loopGap==='rand'? (1+Math.floor(Math.random()*20)) : Quiz.loopGap;
-        if(Quiz.rounds - (e.lastSeen||0) >= gapv){ next=e.idx; e.lastSeen=Quiz.rounds; break; }
-      }
-      if(next<0 && Quiz.loopQ.length){ next=Quiz.loopQ[0].idx; Quiz.loopQ[0].lastSeen=Quiz.rounds; }
+    var due=loopTick();
+    if(Quiz.linIdx===undefined) Quiz.linIdx=0;
+    // 优先: 到期重现题
+    if(due!==null && due!==undefined){ Quiz.i=due; renderQ(); return; }
+    // 线性前进
+    if(Quiz.linIdx<Quiz.qs.length-1){ Quiz.linIdx++; Quiz.i=Quiz.linIdx; renderQ(); return; }
+    // 线性走完: 只消化循环队列(等待due) — 若全部dueIn>0, 快进到最近的到期
+    if(Quiz.loopQ.length){
+      var minE=null;
+      Quiz.loopQ.forEach(function(e){ if(!minE||e.dueIn<minE.dueIn) minE=e; });
+      Quiz.rounds+=minE.dueIn;
+      Quiz.loopQ.forEach(function(e){ e.dueIn-=minE.dueIn; });
+      Quiz.i=minE.idx;
+      Quiz.loopQ.splice(Quiz.loopQ.indexOf(minE),1);  // 摘出, 作答后afterJudge决定是否重新入队
+      renderQ(); return;
     }
-    if(next<0){ finishQuiz(); return; }
-    Quiz.i=next; renderQ(); return;
+    finishQuiz(); return;
   }
   if(Quiz.i<Quiz.qs.length-1){ Quiz.i++; renderQ(); }
   else finishQuiz();
