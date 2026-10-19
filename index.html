@@ -459,6 +459,7 @@ var curView='vHome';
 function show(id){
   views.forEach(function(v){ document.getElementById(v).classList.toggle('on', v===id); });
   curView=id;
+  try{ if(id!=='vHome'&&id!=='vConf') localStorage.setItem('lastView', id); }catch(e){}
   var inQuiz = (id==='vQuiz'||id==='vAnsSheet'||id==='vResult');
   document.getElementById('topbar').style.display = inQuiz? 'block':'none';
   document.getElementById('nav').style.display = inQuiz? 'none':'flex';
@@ -510,6 +511,37 @@ function beep(ok){
 
 /* ---------- 刷题引擎 ---------- */
 var Quiz = null;
+function saveSession(){
+  if(!Quiz||Quiz.mode==='review') return;
+  try{
+    var ids=[];
+    Quiz.qs.forEach(function(q){ ids.push(q.__id); });
+    localStorage.setItem('quizSession', JSON.stringify({
+      ids:ids, opt:{mode:Quiz.mode,instant:Quiz.opt.instant,auto:Quiz.opt.auto,timer:Quiz.opt.timer,recite:Quiz.opt.recite},
+      i:Quiz.i, linIdx:Quiz.linIdx, ans:Quiz.ans, judged:Quiz.judged,
+      right:Quiz.right, wrongn:Quiz.wrongn, rounds:Quiz.rounds,
+      loopQ:Quiz.loopQ||[], needMap:Quiz.needMap||{}, graduated:Quiz.graduated||0
+    }));
+  }catch(e){}
+}
+function restoreSession(){
+  try{
+    var raw=localStorage.getItem('quizSession');
+    if(!raw) return false;
+    var sv=JSON.parse(raw);
+    if(!sv.ids||!sv.ids.length) return false;
+    var list=[];
+    sv.ids.forEach(function(id){ if(BANK[id]) list.push(id); });
+    if(!list.length) return false;
+    buildQuiz(list, sv.opt);
+    Quiz.i=Math.min(sv.i||0, list.length-1);
+    Quiz.linIdx=sv.linIdx; Quiz.ans=sv.ans||{}; Quiz.judged=sv.judged||{};
+    Quiz.right=sv.right||0; Quiz.wrongn=sv.wrongn||0; Quiz.rounds=sv.rounds||0;
+    Quiz.loopQ=sv.loopQ||[]; Quiz.needMap=sv.needMap||{}; Quiz.graduated=sv.graduated||0;
+    return true;
+  }catch(e){ return false; }
+}
+
 function buildQuiz(list, opt){
   // opt: {instant, auto, timer, loop, recite, mode}
   var qs = list.map(function(idx){ var q = Object.assign({}, BANK[idx]); q.__id=idx; return q; });
@@ -606,6 +638,7 @@ function renderQ(){
   stopTimer();
   if(Quiz.opt.timer && ans===undefined && !Quiz.opt.recite){ startTimer(Quiz.opt.timer); }
   else { document.getElementById('qTimer').textContent=''; }
+  saveSession();
 }
 function ansLetters(q){ var L='ABCDEFGH'; return q.map(function(i){return L[i];}).join(''); }
 function sameSetNeedJudge(Qz,q,ans){
@@ -749,6 +782,7 @@ function nextQ(){
 function prevQ(){ if(Quiz&&Quiz.i>0){ clearTimeout(autoT); Quiz.i--; renderQ(); } }
 
 function finishQuiz(){
+  try{ localStorage.removeItem('quizSession'); localStorage.removeItem('lastView'); }catch(e){}
   if(!Quiz) return;
   Quiz.done=true; stopTimer(); clearTimeout(autoT);
   show('vResult');
@@ -976,7 +1010,7 @@ document.addEventListener('click',function(e){
   // 导航
   if(t.dataset.nav){
     var n=t.dataset.nav;
-    if(n==='home'){ renderHome(); show('vHome'); }
+    if(n==='home'){ try{localStorage.removeItem('quizSession');}catch(e){} renderHome(); show('vHome'); }
     else if(n==='wrong'){ renderWrong(); show('vWrong'); }
     else if(n==='stats'){ renderStats(); show('vStats'); }
     else if(n==='settings'){ renderThemes(); show('vSettings'); }
@@ -1085,6 +1119,16 @@ function initPWA(){
 /* ---------- init ---------- */
 initPWA();
 applyTheme(S.theme);
+/* 会话恢复: 退出PWA再进, 继续刚才的题 */
+setTimeout(function(){
+  var restored=false;
+  try{ restored=restoreSession(); }catch(e){}
+  if(restored){ show('vQuiz'); renderQ(); }
+  else{
+    var lv=null; try{ lv=localStorage.getItem('lastView'); }catch(e){}
+    if(lv && views.indexOf(lv)>=0 && lv!=='vQuiz'&&lv!=='vConf') show(lv);
+  }
+},50);
 setSw('swInstant',S.instant); setSw('swInstant2',S.instant);
 setSw('swAuto',S.auto); setSw('swAuto2',S.auto);
 setSw('swReciteAuto',S.reciteAuto); setSw('swSound',S.sound); setSw('swFx',S.fx);
