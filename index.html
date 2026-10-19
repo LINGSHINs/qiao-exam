@@ -261,6 +261,12 @@ input,select{font-family:inherit}
     <div class="field" id="confTimeF" style="display:none"><label>每题限时（秒）</label>
       <div class="chips" id="confTime"></div>
     </div>
+    <div class="field" id="confGapF" style="display:none"><label>错题重现间隔（隔几题后重现）</label>
+      <div class="chips" id="confGap"></div>
+    </div>
+    <div class="field" id="confStreakF" style="display:none"><label>连对几次后移出循环</label>
+      <div class="chips" id="confStreak"></div>
+    </div>
     <div class="switchrow"><div class="sl"><b>乱题序</b><span>打乱题目顺序</span></div><button class="sw" id="swQshuf"><i></i></button></div>
     <div class="switchrow"><div class="sl"><b>乱选项序</b><span>打乱选项顺序</span></div><button class="sw" id="swOshuf"><i></i></button></div>
   </div>
@@ -498,7 +504,10 @@ function buildQuiz(list, opt){
   var qs = list.map(function(idx){ var q = Object.assign({}, BANK[idx]); q.__id=idx; return q; });
   Quiz = {
     qs: qs, i:0, mode:opt.mode||'seq', ans:{}, right:0, wrongn:0,
-    opt: opt, done:false, timer:null, tleft:0
+    opt: opt, done:false, timer:null, tleft:0,
+    loopQ: [],        // 待重现错题 [{idx(在qs中), need}] need=还需连对次数
+    loopGap: opt.gap||5, loopStreak: opt.streak||3,
+    rounds: 0         // 实际作答轮数
   };
 }
 function curQ(){ return Quiz? Quiz.qs[Quiz.i] : null; }
@@ -515,7 +524,9 @@ function renderQ(){
   var sub = '第 '+(Quiz.i+1)+' / '+Quiz.qs.length+' 题 · 答'+(st.r||0)+'错'+(st.w||0);
   var noEl = document.querySelector('.qtop .qno');
   // 题号行在qtop内, 这里用type+timer行即可; 补充统计到qtext前
-  document.getElementById('qType').textContent = (TYPEMAP[q.type]||q.type) + ' · 累计对'+(st.r||0)+'/错'+(st.w||0);
+  var rt='';
+  if(Quiz.mode==='loop'){ var ent=null; Quiz.loopQ.forEach(function(e){ if(e.idx===Quiz.i) ent=e; }); if(ent) rt=' · 重现(还需连对'+ent.need+')'; }
+  document.getElementById('qType').textContent = (TYPEMAP[q.type]||q.type) + ' · 累计对'+(st.r||0)+'/错'+(st.w||0) + rt;
 
   var wrap = document.getElementById('qOpts');
   var letters='ABCDEFGH';
@@ -633,6 +644,7 @@ function pickOpt(oi){
       Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
       var right = q.ans[0]===oi;
       recAnswer(q, right); recordRound(right);
+      afterJudge(right);
     }
     renderQ();
   }
@@ -644,13 +656,42 @@ function judgeMulti(){
   Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
   var right=sameSet(a,q.ans);
   recAnswer(q,right); recordRound(right);
+  afterJudge(right);
   renderQ();
+}
+function afterJudge(right){
+  if(!Quiz||Quiz.mode!=='loop') return;
+  var qi=Quiz.i;
+  var ent=null;
+  Quiz.loopQ.forEach(function(e){ if(e.idx===qi) ent=e; });
+  if(right){
+    if(ent){ ent.need--; if(ent.need<=0){ Quiz.loopQ.splice(Quiz.loopQ.indexOf(ent),1); } }
+  } else {
+    if(!ent){ Quiz.loopQ.push({idx:qi, need:Quiz.loopStreak}); }
+    else { ent.need=Quiz.loopStreak; }
+  }
 }
 function recordRound(right){ if(right) Quiz.right++; else Quiz.wrongn++; }
 
 function nextQ(){
   clearTimeout(autoT);
   if(!Quiz||Quiz.done) return;
+  if(Quiz.mode==='loop'){
+    // 找下一个: 沿队列前进; 走到尾部且有循环错题 → 从头找第一个"距上次见>=gap"的循环题
+    Quiz.rounds++;
+    var next=-1;
+    for(var j=Quiz.i+1;j<Quiz.qs.length;j++){ next=j; break; }
+    if(next<0 && Quiz.loopQ.length){
+      // 一轮结束: 从循环队列挑重现题 — 优先最早入队且未被本回合最近消化的
+      for(var k=0;k<Quiz.loopQ.length;k++){
+        var e=Quiz.loopQ[k];
+        if(Quiz.rounds - (e.lastSeen||0) >= Quiz.loopGap){ next=e.idx; e.lastSeen=Quiz.rounds; break; }
+      }
+      if(next<0 && Quiz.loopQ.length){ next=Quiz.loopQ[0].idx; Quiz.loopQ[0].lastSeen=Quiz.rounds; }
+    }
+    if(next<0){ finishQuiz(); return; }
+    Quiz.i=next; renderQ(); return;
+  }
   if(Quiz.i<Quiz.qs.length-1){ Quiz.i++; renderQ(); }
   else finishQuiz();
 }
@@ -667,7 +708,7 @@ function finishQuiz(){
   arc.style.transition='stroke-dashoffset .8s ease';
   arc.style.strokeDashoffset= 326.7*(1-pct/100);
   arc.setAttribute('stroke', pct>=80?'var(--ok)':pct>=60?'var(--ac)':'var(--bad)');
-  document.getElementById('rSub').textContent=(MODE_TITLE[Quiz.mode]||'练习')+' · 共 '+tot+' 题';
+  document.getElementById('rSub').textContent=(MODE_TITLE[Quiz.mode]||'练习')+' · 共 '+tot+' 题'+(Quiz.mode==='loop'?' · '+Quiz.rounds+' 轮':'');
   var sg=document.getElementById('rStats');
   sg.innerHTML = statCells([
     [Quiz.right,'答对'],[Quiz.wrongn,'答错'],[fmtPct(Quiz.right,tot),'正确率'],[Quiz.qs.length,'总题数']
@@ -703,7 +744,7 @@ var MODE_CONF = {
   seq:{title:'顺序刷题', types:['sec','type','qshuf','oshuf','count']},
   paper:{title:'组卷刷题', types:['sec','type','qshuf','oshuf','count']},
   forget:{title:'遗忘曲线', types:['sec','type']},
-  loop:{title:'循环刷题', types:['sec','type','range','qshuf']},
+  loop:{title:'循环刷题', types:['sec','type','range','qshuf','gap','streak']},
   recite:{title:'背题模式', types:['sec','type','range','count','oshuf']},
   quick:{title:'快答模式', types:['sec','type','count','time','qshuf','oshuf']}
 };
@@ -724,10 +765,28 @@ function openConf(mode){
   document.getElementById('confCountF').style.display= spec.types.indexOf('count')>=0?'block':'none';
   document.getElementById('confRangeF').style.display= spec.types.indexOf('range')>=0?'block':'none';
   document.getElementById('confTimeF').style.display= spec.types.indexOf('time')>=0?'block':'none';
+  var gf=document.getElementById('confGapF');
+  gf.style.display= spec.types.indexOf('gap')>=0?'block':'none';
+  if(spec.types.indexOf('gap')>=0 && !gf.dataset.init){
+    gf.dataset.init='1';
+    document.getElementById('confGap').innerHTML=[3,5,8,10,15].map(function(v){return '<button class="chip" data-gap="'+v+'">隔'+v+'题</button>';}).join('');
+  }
+  var sf=document.getElementById('confStreakF');
+  sf.style.display= spec.types.indexOf('streak')>=0?'block':'none';
+  if(spec.types.indexOf('streak')>=0 && !sf.dataset.init){
+    sf.dataset.init='1';
+    document.getElementById('confStreak').innerHTML=[2,3,4,5].map(function(v){return '<button class="chip" data-streak="'+v+'">'+v+'次</button>';}).join('');
+  }
   if(spec.types.indexOf('time')>=0){
     document.getElementById('confTime').innerHTML=[5,10,15,20,30].map(function(s){
       return '<button class="chip" data-t="'+s+'">'+s+'秒</button>'; }).join('');
     confTime=10;
+  }
+  if(spec.types.indexOf('gap')>=0){
+    document.querySelectorAll('#confGap .chip').forEach(function(c){ c.classList.toggle('on', +c.dataset.gap===confGap); });
+  }
+  if(spec.types.indexOf('streak')>=0){
+    document.querySelectorAll('#confStreak .chip').forEach(function(c){ c.classList.toggle('on', +c.dataset.streak===confStreak); });
   }
   setSw('swQshuf',S.qshuf); setSw('swOshuf',S.oshuf);
   document.getElementById('confStart').textContent='开始 · '+spec.title;
@@ -737,7 +796,7 @@ function openConf(mode){
   rows[0].style.display = spec.types.indexOf('qshuf')>=0?'flex':'none';
   rows[1].style.display = spec.types.indexOf('oshuf')>=0?'flex':'none';
 }
-var confTime=10;
+var confTime=10, confGap=5, confStreak=3;
 function confPool(){
   var pool=[];
   BANK.forEach(function(q,i){
@@ -776,7 +835,7 @@ function startConf(){
     var n=parseInt(document.getElementById('confCount').value);
     if(n>0 && n<list.length) list=list.slice(0,n);
   }
-  var opt={mode:confMode, instant:S.instant, auto:S.auto, timer:0, recite:confMode==='recite', loop:confMode==='loop'};
+  var opt={mode:confMode, instant:S.instant, auto:S.auto, timer:0, recite:confMode==='recite', loop:confMode==='loop', gap:confGap, streak:confStreak};
   if(confMode==='quick') opt.timer=confTime;
   if(confMode==='recite') opt.instant=false;
   // 乱选项: 预生成每个题的选项映射
@@ -875,6 +934,8 @@ document.addEventListener('click',function(e){
   if(t.dataset.sec){ t.classList.toggle('on'); confSel.sec[t.dataset.sec]=t.classList.contains('on')?1:0; return; }
   if(t.dataset.type){ t.classList.toggle('on'); confSel.type[t.dataset.type]=t.classList.contains('on')?1:0; return; }
   if(t.dataset.t!==undefined && t.closest('#confTime')){ confTime=+t.dataset.t; document.querySelectorAll('#confTime .chip').forEach(function(c){c.classList.remove('on');}); t.classList.add('on'); return; }
+  if(t.dataset.gap!==undefined && t.closest('#confGap')){ confGap=+t.dataset.gap; document.querySelectorAll('#confGap .chip').forEach(function(c){c.classList.remove('on');}); t.classList.add('on'); return; }
+  if(t.dataset.streak!==undefined && t.closest('#confStreak')){ confStreak=+t.dataset.streak; document.querySelectorAll('#confStreak .chip').forEach(function(c){c.classList.remove('on');}); t.classList.add('on'); return; }
   // 选项
   if(t.classList.contains('opt') && t.dataset.o!==undefined){ pickOpt(+t.dataset.o); return; }
   // 答题卡格子
