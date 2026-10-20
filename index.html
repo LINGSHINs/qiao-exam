@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-t="ink">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -17,6 +17,9 @@
   --ac:#5ea0d8; --ac2:#7fb8e6; --ok:#5fbf8a; --bad:#d87070;
   --line:#2a333e; --shadow:0 4px 24px rgba(0,0,0,.35);
   --r:16px; --nav-h:64px; --radius:14px; --card-rad:16px; --letter:0; --fw:600;
+  --bg:#fbfafa; --bg2:#f3f1f1; --card:#ffffff; --card2:#f8f5f5;
+  --tx:#2a2626; --tx2:#6b6060; --tx3:#a89898; --ac:#d63a2e; --ac2:#e8645a;
+  --ok:#2f9e4e; --bad:#c8443a; --line:#eae2e2; --shadow:0 4px 20px rgba(160,40,30,.08);
 }
 
 
@@ -25,30 +28,6 @@
 
 
 
-[data-t="porcelain"]{ --r:8px; --bg:#eef2f6; --bg2:#e2e9f0; --card:#ffffff; --card2:#f2f6fa;
-  --tx:#16283c; --tx2:#4d6a85; --tx3:#8ba3ba; --ac:#2b6cb8; --ac2:#5a94d8;
-  --ok:#1e8a5a; --bad:#c44a4a; --line:#d3dde8; --shadow:0 8px 28px rgba(30,60,100,.12);
-  --rad:8px; --radius:8px; --card-rad:8px; --letter:.02em; --fw:600; }
-[data-t="ink"]{ --r:2px; --bg:#0d0d0d; --bg2:#141414; --card:#1a1a1a; --card2:#222222;
-  --tx:#e8e4dc; --tx2:#9a938a; --tx3:#5c5750; --ac:#c9a86a; --ac2:#dcc294;
-  --ok:#8fae8b; --bad:#c47a6a; --line:#2e2c28; --shadow:0 6px 24px rgba(0,0,0,.55);
-  --rad:2px; --radius:2px; --card-rad:2px; --letter:.14em; --fw:500; }
-[data-t="dusk"]{ --r:22px; --bg:#1c1030; --bg2:#281944; --card:#321e55; --card2:#3f2869;
-  --tx:#f2e8ff; --tx2:#b8a0e0; --tx3:#7a64a8; --ac:#ff7ab8; --ac2:#ff9ed0;
-  --ok:#6fe0a8; --bad:#ff6a8a; --line:#4a3080; --shadow:0 10px 32px rgba(80,20,140,.5);
-  --rad:22px; --radius:22px; --card-rad:22px; --letter:.02em; --fw:700; }
-[data-t="ember"]{ --r:14px; --bg:#140c06; --bg2:#20140a; --card:#2c1a0c; --card2:#3a2412;
-  --tx:#ffedd8; --tx2:#d0a888; --tx3:#8a684a; --ac:#ff8c3a; --ac2:#ffb06a;
-  --ok:#a8d86a; --bad:#ff5a4a; --line:#4a3020; --shadow:0 8px 30px rgba(200,80,0,.25);
-  --rad:14px; --radius:14px; --card-rad:14px; --letter:.06em; --fw:700; }
-[data-t="mist"]{ --r:18px; --bg:#f5f4ef; --bg2:#ece9e0; --card:#fffef9; --card2:#f6f3ea;
-  --tx:#2a2a24; --tx2:#6a6a5c; --tx3:#a0a090; --ac:#7a9a3a; --ac2:#98ba5c;
-  --ok:#4a9a5a; --bad:#c05a4a; --line:#e0ddcf; --shadow:0 4px 18px rgba(80,80,40,.1);
-  --rad:18px; --radius:18px; --card-rad:18px; --letter:.03em; --fw:400; }
-[data-t="night"]{ --r:6px; --bg:#010208; --bg2:#050a18; --card:#081020; --card2:#0d1830;
-  --tx:#c8e8ff; --tx2:#6a90c0; --tx3:#3a5878; --ac:#38e8d8; --ac2:#6af2e8;
-  --ok:#38e888; --bad:#ff5a7a; --line:#122548; --shadow:0 6px 30px rgba(0,40,120,.4);
-  --rad:6px; --radius:6px; --card-rad:6px; --letter:.08em; --fw:600; }
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}
@@ -269,7 +248,7 @@ input,select{font-family:inherit}
     <button class="mode" data-go="quick"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></div><b>快答模式</b><span>限时作答，电光石火</span></button>
     <button class="mode" data-go="wrong"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><b>错题集</b><span>拾遗补缺，逐个击破</span></button>
     <button class="mode" data-go="stats"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 20V10M12 20V4M18 20v-7"/></svg></div><b>学习进度</b><span>正确率与进度一览</span></button>
-    <button class="mode" data-go="settings"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.6h0a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></div><b>设置</b><span>皮肤与答题偏好</span></button>
+    <button class="mode" data-go="settings"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.6h0a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></div><b>设置</b><span>答题偏好设置</span></button>
   </div>
 </section>
 
@@ -366,8 +345,7 @@ input,select{font-family:inherit}
 <!-- 设置 -->
 <section class="view" id="vSettings">
   <div class="card">
-    <h3 style="margin-bottom:14px">皮肤</h3>
-    <div class="themes" id="themeGrid"></div>
+    
     <h3 style="margin:16px 0 4px">答题偏好</h3>
     <div class="switchrow"><div class="sl"><b>立即显示答案</b><span>作答后立刻判分并展示解析</span></div><button class="sw" id="swInstant"><i></i></button></div>
     <div class="switchrow"><div class="sl"><b>自动跳转下一题</b><span>答对后延时自动前进</span></div><button class="sw" id="swAuto"><i></i></button></div>
@@ -392,7 +370,6 @@ input,select{font-family:inherit}
   <div class="sheet">
     <div class="grab"></div>
     <h3>快速设置</h3>
-    <div class="themes" id="themeGrid2"></div>
     <div class="switchrow"><div class="sl"><b>立即显示答案</b></div><button class="sw" id="swInstant2"><i></i></button></div>
     <div class="switchrow"><div class="sl"><b>自动跳转下一题</b></div><button class="sw" id="swAuto2"><i></i></button></div>
   </div>
@@ -430,7 +407,7 @@ function lsGet(k, d){ try{ var v=localStorage.getItem('hl_'+k); return v===null?
 function lsSet(k, v){ try{ localStorage.setItem('hl_'+k, JSON.stringify(v)); }catch(e){} }
 
 var S = {
-  theme: lsGet('theme','ink'),
+  theme: 'mist',
   instant: lsGet('instant',true),
   auto: lsGet('auto',true),
   autoDelay: lsGet('autoDelay',2),
@@ -443,28 +420,12 @@ var S = {
   doneOnce: lsGet('doneOnce',{})   // qid -> 1 (做过的题)
 };
 
-/* ---------- 主题 ---------- */
-var THEMES = [
-  {k:'ink', n:'墨砚', bg:'#101418', ac:'#8fae8b'},
-  {k:'porcelain', n:'青瓷', bg:'#f4f5f7', ac:'#3a6ea8'},
-  {k:'dusk', n:'暮山', bg:'#171320', ac:'#a78bd8'},
-  {k:'ember', n:'焰金', bg:'#1a1410', ac:'#d89a5a'},
-  {k:'mist', n:'雾白', bg:'#eef2f4', ac:'#4a8a8a'},
-  {k:'night', n:'深海', bg:'#0a0d14', ac:'#6a8fd8'}
-];
+/* ---------- 主题(单套: 白底农信红绿) ---------- */
 function applyTheme(k){
-  document.documentElement.setAttribute('data-t', k);
-  var t = THEMES.find(function(x){return x.k===k}) || THEMES[0];
-  var m = document.querySelector('meta[name=theme-color]'); if(m) m.content=t.bg;
-  S.theme=k; lsSet('theme',k);
-    renderThemes();
+  var m = document.querySelector('meta[name=theme-color]'); if(m) m.content='#fbfafa';
+  S.theme='mist'; lsSet('theme','mist');
 }
-function renderThemes(){
-  var html = THEMES.map(function(t){
-    return '<button class="thcard'+(S.theme===t.k?' on':'')+'" data-th="'+t.k+'"><div class="dot" style="background:'+t.bg+';border-bottom:3px solid '+t.ac+'"></div><span>'+t.n+'</span></button>';
-  }).join('');
-  ['themeGrid','themeGrid2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.innerHTML=html; });
-}
+function renderThemes(){}
 
 /* ---------- 视图路由 ---------- */
 var views=['vHome','vConf','vQuiz','vAnsSheet','vResult','vWrong','vStats','vSettings'];
@@ -765,6 +726,20 @@ function loopTick(){
 function nextQ(){
   clearTimeout(autoT);
   if(!Quiz||Quiz.done) return;
+  // 未提交答案不允许下一题: 已选择但未判定(且非背题)
+  var cur=Quiz.ans[Quiz.i]||[];
+  var hasPick=cur.length&&cur[0]!==-1;
+  var isJudged=Quiz.judged&&Quiz.judged[Quiz.i];
+  if(hasPick&&!isJudged&&!Quiz.opt.recite){
+    document.getElementById('qFb').className='feedback show bad';
+    document.getElementById('qFb').textContent='请先提交答案（点击确认）';
+    return;
+  }
+  if(!hasPick&&!isJudged&&!Quiz.opt.recite){
+    document.getElementById('qFb').className='feedback show bad';
+    document.getElementById('qFb').textContent='请先作答本题';
+    return;
+  }
   if(Quiz.mode==='loop'){
     Quiz.rounds++;
     var due=loopTick();
@@ -1022,7 +997,7 @@ document.addEventListener('click',function(e){
     var g=t.dataset.go;
     if(g==='wrong'){ renderWrong(); show('vWrong'); return; }
     if(g==='stats'){ renderStats(); show('vStats'); return; }
-    if(g==='settings'){ renderThemes(); show('vSettings'); return; }
+    if(g==='settings'){  show('vSettings'); return; }
     openConf(g); return;
   }
   // 主题
@@ -1033,7 +1008,7 @@ document.addEventListener('click',function(e){
     if(n==='home'){ try{localStorage.removeItem('quizSession');}catch(e){} renderHome(); show('vHome'); }
     else if(n==='wrong'){ renderWrong(); show('vWrong'); }
     else if(n==='stats'){ renderStats(); show('vStats'); }
-    else if(n==='settings'){ renderThemes(); show('vSettings'); }
+    else if(n==='settings'){  show('vSettings'); }
     return;
   }
   // 章节题型chips
@@ -1151,10 +1126,6 @@ setTimeout(function(){
   var restored=false;
   try{ restored=restoreSession(); }catch(e){}
   if(restored){ show('vQuiz'); renderQ(); }
-  else{
-    var lv=null; try{ lv=localStorage.getItem('lastView'); }catch(e){}
-    if(lv && views.indexOf(lv)>=0 && lv!=='vQuiz'&&lv!=='vConf') show(lv);
-  }
 },50);
 setSw('swInstant',S.instant); setSw('swInstant2',S.instant);
 setSw('swAuto',S.auto); setSw('swAuto2',S.auto);
