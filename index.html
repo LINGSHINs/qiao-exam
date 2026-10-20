@@ -703,13 +703,13 @@ function pickOpt(oi){
   if(!Quiz||Quiz.done) return;
   var q=curQ();
   var cur=Quiz.ans[Quiz.i]||[];
-  if(Quiz.opt.instant && cur.length && cur[0]!==-1) return; // 已判分不可改
   if(q.type==='多选题'){
     var ix=cur.indexOf(oi);
     if(ix>=0) cur.splice(ix,1); else cur.push(oi);
     Quiz.ans[Quiz.i]=cur;
     renderQ();
   } else {
+    if(Quiz.opt.instant && cur.length && cur[0]!==-1) return; // 已判分不可改
     Quiz.ans[Quiz.i]=[oi];
     if(Quiz.opt.instant){
       Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
