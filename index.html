@@ -13368,6 +13368,21 @@ var confMode='seq';
 var confSel={sec:{},type:{}};
 function openConf(mode){
   confMode=mode;
+  if(mode==='loop'){
+    try{
+      var raw=localStorage.getItem('quizSession');
+      if(raw){
+        var sv=JSON.parse(raw);
+        if(sv&&sv.opt&&sv.opt.mode==='loop'&&sv.ids&&sv.ids.length){
+          if(confirm('检测到上次循环练习未完成，是否继续？\n确定=继续上次  取消=重新开始')){
+            if(restoreSession()){ show('vQuiz'); renderQ(); return; }
+          } else {
+            localStorage.removeItem('quizSession'); localStorage.removeItem('lastView');
+          }
+        }
+      }
+    }catch(e){}
+  }
   var spec=MODE_CONF[mode];
   // 默认全选
   confSel.sec={}; SECS.forEach(function(s){confSel.sec[s]=1;});
@@ -13661,11 +13676,7 @@ initPWA();
 applyTheme(S.theme);
 
 /* 会话恢复: 退出PWA再进, 继续刚才的题 */
-setTimeout(function(){
-  var restored=false;
-  try{ restored=restoreSession(); }catch(e){}
-  if(restored){ show('vQuiz'); renderQ(); }
-},50);
+/* 循环模式进入时询问是否继续上次练习(不做静默恢复) */
 setSw('swInstant',S.instant); setSw('swInstant2',S.instant);
 setSw('swAuto',S.auto); setSw('swAuto2',S.auto);
 setSw('swReciteAuto',S.reciteAuto); setSw('swSound',S.sound); setSw('swFx',S.fx);
