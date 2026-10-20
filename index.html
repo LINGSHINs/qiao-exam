@@ -29,6 +29,24 @@
 
 
 
+body.night{
+  --bg:#0f1318; --bg2:#161c23; --card:#1c232c; --card2:#232c37;
+  --tx:#e8edf2; --tx2:#9aa7b4; --tx3:#5f6b78;
+  --ac:#e0564a; --ac2:#ef7a70;
+  --ok:#4cb86f; --bad:#d87070;
+  --line:#2a333e; --shadow:0 4px 24px rgba(0,0,0,.45);
+}
+body.night .topbar{background:rgba(15,19,24,.92)}
+body.night .nav{background:rgba(15,19,24,.92)}
+body.night .progbar{background:#232c37}
+body.night .chip{background:#232c37;color:#9aa7b4}
+body.night .chip.on{background:rgba(224,86,74,.18);color:#ef7a70;border-color:rgba(224,86,74,.5)}
+body.night .opt{background:#1c232c;border-color:#2a333e}
+body.night .opt.sel{border-color:#e0564a;background:rgba(224,86,74,.12)}
+body.night .opt.right{border-color:#4cb86f;background:rgba(76,184,111,.12)}
+body.night .opt.wrong{border-color:#d87070;background:rgba(216,112,112,.12)}
+body.night #btnNight{background:#1c232c;border-color:#2a333e;color:#e8edf2}
+
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 body{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -12632,9 +12650,12 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 
 <!-- 首页 -->
 <section class="view on" id="vHome">
-  <div class="greet">
+  <div class="greet" style="position:relative">
     <h2>外汇考试</h2>
     <p>国际业务 · 题海摆渡</p>
+    <button id="btnNight" title="夜间模式" style="position:absolute;right:0;top:4px;border:1px solid var(--line);background:var(--card);color:var(--tx2);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">
+      <svg id="icoMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
   </div>
   <div class="card">
     <div class="statgrid" id="homeStats"></div>
@@ -13017,6 +13038,17 @@ function bindSync(){
     var m=document.getElementById('syncMsg'); m.textContent=r.msg; m.style.color=r.ok?'var(--ok)':'var(--bad)';
   });
 }
+/* 夜间模式 */
+function setNight(on){
+  document.body.classList.toggle('night',on);
+  lsSet('night',on);
+  var m=document.querySelector('meta[name=theme-color]'); if(m) m.content=on?'#0f1318':'#fbfafa';
+  var b=document.getElementById('btnNight'); if(b) b.title=on?'日间模式':'夜间模式';
+}
+setNight(lsGet('night',false));
+document.getElementById('btnNight').addEventListener('click',function(){
+  setNight(!document.body.classList.contains('night'));
+});
 bindSync();
 
 function saveSession(){
