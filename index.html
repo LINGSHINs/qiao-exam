@@ -13045,10 +13045,41 @@ function setNight(on){
   var m=document.querySelector('meta[name=theme-color]'); if(m) m.content=on?'#0f1318':'#fbfafa';
   var b=document.getElementById('btnNight'); if(b) b.title=on?'日间模式':'夜间模式';
 }
-setNight(lsGet('night',false));
+/* 夜间模式: 默认按时段自动(19:00-6:30夜), 手动点按钮锁定后记忆; 跨时段自动纠偏 */
+var nightAuto=true, nightOn=false;
+(function(){
+  var sv=lsGet('nightPref',null);
+  if(sv==='auto'){ nightAuto=true; }
+  else if(sv==='day'||sv==='night'){ nightAuto=false; nightOn=(sv==='night'); }
+})();
+function nightCalcAuto(){
+  var h=new Date().getHours()+new Date().getMinutes()/60;
+  return (h>=19||h<6.5);
+}
+function nightRefresh(){
+  var on=nightAuto? nightCalcAuto() : nightOn;
+  setNight(on);
+}
+setNight(nightAuto?nightCalcAuto():nightOn);
 document.getElementById('btnNight').addEventListener('click',function(){
-  setNight(!document.body.classList.contains('night'));
+  var cur=document.body.classList.contains('night');
+  nightAuto=false; nightOn=!cur;
+  lsSet('nightPref',nightOn?'night':'day');
+  setNight(nightOn);
 });
+setInterval(function(){ nightRefresh(); },60000);
+/* 长按(1秒)恢复自动切换 */
+(function(){
+  var t=null,btn=document.getElementById('btnNight');
+  function start(){ t=setTimeout(function(){
+    nightAuto=true; lsSet('nightPref','auto');
+    nightRefresh();
+    btn.style.outline='2px solid var(--ac)'; setTimeout(function(){btn.style.outline='';},800);
+  },1000); }
+  function cancel(){ if(t){ clearTimeout(t); t=null; } }
+  btn.addEventListener('touchstart',start); btn.addEventListener('touchend',cancel); btn.addEventListener('touchmove',cancel);
+  btn.addEventListener('mousedown',start); btn.addEventListener('mouseup',cancel); btn.addEventListener('mouseleave',cancel);
+})();
 bindSync();
 
 function saveSession(){
