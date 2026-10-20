@@ -217,9 +217,7 @@ input,select{font-family:inherit}
     <div style="text-align:center;flex:1">
       <div class="brand" id="topTitle" style="font-size:17px;letter-spacing:.15em">外汇考试</div>
     </div>
-    <button class="icobtn" id="btnCard" aria-label="答题卡" style="visibility:hidden">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h.01M11 9h.01M15 9h.01M7 13h.01M11 13h.01M15 13h.01M7 17h10"/></svg>
-    </button>
+    <button id="qFinish" style="border:none;background:none;color:var(--tx2);font-size:13px;padding:8px 4px;cursor:pointer;white-space:nowrap">结束</button>
   </div>
   <div style="padding:0 18px 8px;display:flex;align-items:center;gap:8px"><div class="tinybar"><i id="tinyFill" style="width:0"></i></div><span id="tinyLbl" style="font-size:11px;color:var(--tx3);white-space:nowrap;font-variant-numeric:tabular-nums"></span></div>
 </header>
@@ -296,7 +294,6 @@ input,select{font-family:inherit}
       <button id="qNext">下一题</button>
     </div>
   </div>
-  <div style="margin-top:12px"><button class="btn ghost" id="qFinish">结束本次练习</button></div>
 </section>
 
 <!-- 答题卡 -->
@@ -1028,7 +1025,6 @@ document.getElementById('btnBack').addEventListener('click',function(){
   else if(curView==='vConf'){ renderHome(); show('vHome'); }
   else { renderHome(); show('vHome'); }
 });
-document.getElementById('btnCard').addEventListener('click',renderAnsSheet);
 document.getElementById('qCardBtn').addEventListener('click',renderAnsSheet);
 document.getElementById('qSubmit').addEventListener('click',function(){
   var q=curQ(); if(!q) return;
@@ -1041,7 +1037,7 @@ document.getElementById('qSubmit').addEventListener('click',function(){
 });
 document.getElementById('qNext').addEventListener('click',nextQ);
 document.getElementById('qPrev').addEventListener('click',prevQ);
-document.getElementById('qFinish').addEventListener('click',finishQuiz);
+document.getElementById('qFinish').addEventListener('click',function(){ if(confirm('确定结束本次练习？')) finishQuiz(); });
 document.getElementById('confStart').addEventListener('click',startConf);
 document.getElementById('rHome').addEventListener('click',function(){ renderHome(); show('vHome'); });
 document.getElementById('rAgain').addEventListener('click',function(){ openConf(Quiz.mode); });
