@@ -12674,6 +12674,9 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     <div class="field" id="confStreakF" style="display:none"><label>连对几次后移出循环</label>
       <div class="chips" id="confStreak"></div>
     </div>
+    <div class="field" id="confRfilterF" style="display:none"><label>只看哪类题</label>
+      <div class="chips" id="confRfilter"></div>
+    </div>
     <div class="switchrow"><div class="sl"><b>乱题序</b><span>打乱题目顺序</span></div><button class="sw" id="swQshuf"><i></i></button></div>
     <div class="switchrow"><div class="sl"><b>乱选项序</b><span>打乱选项顺序</span></div><button class="sw" id="swOshuf"><i></i></button></div>
   </div>
@@ -13360,7 +13363,7 @@ var MODE_CONF = {
   paper:{title:'组卷刷题', types:['sec','type','qshuf','oshuf','count']},
   forget:{title:'遗忘曲线', types:['sec','type']},
   loop:{title:'循环刷题', types:['sec','type','range','qshuf','gap','streak']},
-  recite:{title:'背题模式', types:['sec','type','range','count','oshuf']},
+  recite:{title:'背题模式', types:['sec','type','range','count','oshuf','rfilter']},
   quick:{title:'快答模式', types:['sec','type','count','time','qshuf','oshuf']}
 };
 var MODE_TITLE={seq:'顺序刷题',paper:'组卷刷题',forget:'遗忘曲线',loop:'循环刷题',recite:'背题模式',quick:'快答模式'};
@@ -13401,6 +13404,19 @@ function openConf(mode){
     gf.dataset.init='1';
     document.getElementById('confGap').innerHTML='<button class="chip on" data-gap="rand">随机 1-20 题</button>';
   }
+  var rf=document.getElementById('confRfilterF');
+  rf.style.display= spec.types.indexOf('rfilter')>=0?'block':'none';
+  if(spec.types.indexOf('rfilter')>=0 && !rf.dataset.init){
+    rf.dataset.init='1';
+    document.getElementById('confRfilter').innerHTML=
+      '<button class="chip on" data-rf="all">全部</button>'+
+      '<button class="chip" data-rf="full">多选·全选类</button>'+
+      '<button class="chip" data-rf="right">判断·答案对</button>'+
+      '<button class="chip" data-rf="wrong">判断·答案错</button>';
+  }
+  if(spec.types.indexOf('rfilter')>=0){
+    document.querySelectorAll('#confRfilter .chip').forEach(function(c){ c.classList.toggle('on', c.dataset.rf===confRfilter); });
+  }
   var sf=document.getElementById('confStreakF');
   sf.style.display= spec.types.indexOf('streak')>=0?'block':'none';
   if(spec.types.indexOf('streak')>=0 && !sf.dataset.init){
@@ -13426,7 +13442,7 @@ function openConf(mode){
   rows[0].style.display = spec.types.indexOf('qshuf')>=0?'flex':'none';
   rows[1].style.display = spec.types.indexOf('oshuf')>=0?'flex':'none';
 }
-var confTime=10, confGap='rand', confStreak=3;
+var confTime=10, confGap='rand', confStreak=3, confRfilter='all';
 function confPool(){
   var pool=[];
   BANK.forEach(function(q,i){
@@ -13461,6 +13477,16 @@ function startConf(){
   }
   if(S.qshuf && confMode!=='seq') list=shuffle(list);
   else if(S.qshuf && confMode==='seq') list=shuffle(list);
+  if(confMode==='recite' && confRfilter!=='all'){
+    list=list.filter(function(idx){
+      var q=BANK[idx];
+      if(confRfilter==='full') return q.type==='多选题' && q.ans.length===q.opts.length;
+      if(confRfilter==='right') return q.type==='判断题' && q.ans[0]===0;
+      if(confRfilter==='wrong') return q.type==='判断题' && q.ans[0]!==0;
+      return true;
+    });
+    if(!list.length){ alert('该筛选条件下没有题目，请换个章节/题型'); return; }
+  }
   if(spec.types.indexOf('count')>=0){
     var n=parseInt(document.getElementById('confCount').value);
     if(n>0 && n<list.length) list=list.slice(0,n);
@@ -13596,6 +13622,11 @@ document.getElementById('qSubmit').addEventListener('click',function(){
 document.getElementById('qNext').addEventListener('click',nextQ);
 document.getElementById('qPrev').addEventListener('click',prevQ);
 document.getElementById('qFinish').addEventListener('click',function(){ if(confirm('确定结束本次练习？')) finishQuiz(); });
+document.getElementById('confRfilter').addEventListener('click',function(e){
+  var c=e.target.closest('.chip'); if(!c) return;
+  confRfilter=c.dataset.rf;
+  document.querySelectorAll('#confRfilter .chip').forEach(function(x){ x.classList.toggle('on',x===c); });
+});
 document.getElementById('confStart').addEventListener('click',startConf);
 document.getElementById('rHome').addEventListener('click',function(){ renderHome(); show('vHome'); });
 document.getElementById('rAgain').addEventListener('click',function(){ openConf(Quiz.mode); });
