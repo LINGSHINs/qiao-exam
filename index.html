@@ -219,7 +219,10 @@ input,select{font-family:inherit}
     </div>
     <button id="qFinish" style="border:none;background:none;color:var(--tx2);font-size:13px;padding:8px 4px;cursor:pointer;white-space:nowrap">结束</button>
   </div>
-  <div style="padding:0 18px 8px;display:flex;align-items:center;gap:8px"><div class="tinybar"><i id="tinyFill" style="width:0"></i></div><span id="tinyLbl" style="font-size:11px;color:var(--tx3);white-space:nowrap;font-variant-numeric:tabular-nums"></span></div>
+  <div style="padding:0 18px 8px;display:flex;align-items:center;gap:8px"><div class="tinybar" style="position:relative;flex:1">
+  <i id="tinyFill" style="width:0"></i>
+  <span id="tinyPct" style="position:absolute;top:-14px;left:0;transform:translateX(-50%);font-size:10px;color:var(--tx3);font-variant-numeric:tabular-nums;transition:left .5s ease;white-space:nowrap">0%</span>
+</div><span id="tinyLbl" style="font-size:11px;color:var(--tx3);white-space:nowrap;font-variant-numeric:tabular-nums"></span></div>
 </header>
 
 <main class="app" id="main">
@@ -593,14 +596,18 @@ function renderQ(){
   }
   if(Quiz.opt.recite) markRecite();
   // 进度
+  var progPct=0;
   if(Quiz.mode==='loop'){
     var grad=Quiz.graduated||0;
     var remain=Quiz.qs.length-grad;
     document.getElementById('tinyLbl') && (document.getElementById('tinyLbl').textContent='循环题库剩 '+remain+' / '+Quiz.qs.length);
-    document.getElementById('tinyFill').style.width = (grad/Quiz.qs.length*100)+'%';
+    progPct=grad/Quiz.qs.length*100;
   } else {
-    document.getElementById('tinyFill').style.width = ((Quiz.i)/Quiz.qs.length*100)+'%';
+    progPct=(Quiz.i)/Quiz.qs.length*100;
   }
+  document.getElementById('tinyFill').style.width = progPct+'%';
+  var tp=document.getElementById('tinyPct');
+  if(tp){ tp.textContent=Math.round(progPct)+'%'; tp.style.left=Math.max(4,Math.min(96,progPct))+'%'; }
   // 上一题按钮
   document.getElementById('qPrev').style.visibility = (Quiz.mode==='loop')? 'hidden' : (Quiz.i>0? 'visible':'hidden');
   document.getElementById('qNext').textContent = Quiz.i<Quiz.qs.length-1? '下一题':'完成';
