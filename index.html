@@ -12695,7 +12695,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     <div class="field" id="confStreakF" style="display:none"><label>连对几次后移出循环</label>
       <div class="chips" id="confStreak"></div>
     </div>
-    <div class="field" id="confRfilterF" style="display:none"><label>只看哪类题</label>
+    <div class="field" id="confRfilterF" style="display:none"><label>选题模式（肌肉记忆）</label>
       <div class="chips" id="confRfilter"></div>
     </div>
     <div class="switchrow"><div class="sl"><b>乱题序</b><span>打乱题目顺序</span></div><button class="sw" id="swQshuf"><i></i></button></div>
@@ -13197,7 +13197,8 @@ function renderQ(){
   if(Quiz.mode==='loop'){
     var grad=Quiz.graduated||0;
     var remain=Quiz.qs.length-grad;
-    document.getElementById('tinyLbl') && (document.getElementById('tinyLbl').textContent='循环题库剩 '+remain+' / '+Quiz.qs.length+' · 已毕业 '+grad);
+    var gradPct=Math.round(grad/Quiz.qs.length*100);
+    document.getElementById('tinyLbl') && (document.getElementById('tinyLbl').textContent='循环题库剩 '+remain+' / '+Quiz.qs.length+' · 毕业 '+gradPct+'%');
     // 百分比=毕业进度(主), 辅以作答活跃度: 若尚未毕业, 显示 已作答过的题数占比, 让前期也有推进感
     var answered=0, seen={};
     for(var k in Quiz.ans){ if(Quiz.ans[k]&&Quiz.ans[k].length) seen[k]=1; }
@@ -13206,6 +13207,8 @@ function renderQ(){
     if(grad>=Quiz.qs.length) progPct=100;
   } else {
     progPct=(Quiz.i)/Quiz.qs.length*100;
+    var tl=document.getElementById('tinyLbl');
+    if(tl) tl.textContent='';
   }
   document.getElementById('tinyFill').style.width = progPct+'%';
   var tp=document.getElementById('tinyPct');
@@ -13392,7 +13395,7 @@ function finishQuiz(){
   var sg=document.getElementById('rStats');
   sg.innerHTML = statCells([
     [Quiz.right,'答对'],[Quiz.wrongn,'答错'],[fmtPct(Quiz.right,tot),'正确率'],
-    Quiz.mode==='loop'? [(Quiz.graduated||0)+'/'+Quiz.qs.length,'已毕业'] : [Quiz.qs.length,'总题数']
+    Quiz.mode==='loop'? [fmtPct(Quiz.graduated||0,Quiz.qs.length),'毕业率'] : [Quiz.qs.length,'总题数']
   ]);
   if(Quiz.opt.loop && Quiz.wrongn>0){
     // 循环模式: 错题重入队列尾部
@@ -13422,10 +13425,10 @@ function renderAnsSheet(){
 
 /* ---------- 配置页 ---------- */
 var MODE_CONF = {
-  seq:{title:'顺序刷题', types:['sec','type','qshuf','oshuf','count']},
-  paper:{title:'组卷刷题', types:['sec','type','qshuf','oshuf','count']},
-  forget:{title:'遗忘曲线', types:['sec','type']},
-  loop:{title:'循环刷题', types:['sec','type','range','qshuf','gap','streak']},
+  seq:{title:'顺序刷题', types:['sec','type','qshuf','oshuf','count','rfilter']},
+  paper:{title:'组卷刷题', types:['sec','type','qshuf','oshuf','count','rfilter']},
+  forget:{title:'遗忘曲线', types:['sec','type','rfilter']},
+  loop:{title:'循环刷题', types:['sec','type','range','qshuf','gap','streak','rfilter']},
   recite:{title:'背题模式', types:['sec','type','range','count','oshuf','rfilter']},
   quick:{title:'快答模式', types:['sec','type','count','time','qshuf','oshuf']}
 };
@@ -13473,7 +13476,8 @@ function openConf(mode){
     rf.dataset.init='1';
     document.getElementById('confRfilter').innerHTML=
       '<button class="chip on" data-rf="all">全部</button>'+
-      '<button class="chip" data-rf="full">多选·全选类</button>'+
+      '<button class="chip" data-rf="full">全选类</button>'+
+      '<button class="chip" data-rf="notfull">多选·非全选</button>'+
       '<button class="chip" data-rf="right">判断·答案对</button>'+
       '<button class="chip" data-rf="wrong">判断·答案错</button>';
   }
@@ -13540,10 +13544,11 @@ function startConf(){
   }
   if(S.qshuf && confMode!=='seq') list=shuffle(list);
   else if(S.qshuf && confMode==='seq') list=shuffle(list);
-  if(confMode==='recite' && confRfilter!=='all'){
+  if(confRfilter!=='all'){
     list=list.filter(function(idx){
       var q=BANK[idx];
       if(confRfilter==='full') return q.type==='多选题' && q.ans.length===q.opts.length;
+      if(confRfilter==='notfull') return q.type==='多选题' && q.ans.length!==q.opts.length;
       if(confRfilter==='right') return q.type==='判断题' && q.ans[0]===0;
       if(confRfilter==='wrong') return q.type==='判断题' && q.ans[0]!==0;
       return true;
