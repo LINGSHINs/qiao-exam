@@ -12638,6 +12638,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     <div style="text-align:center;flex:1">
       <div class="brand" id="topTitle" style="font-size:17px;letter-spacing:.15em">外汇考试</div>
     </div>
+    <button id="qMark" style="border:none;background:none;color:var(--tx2);font-size:13px;padding:8px 4px;cursor:pointer;white-space:nowrap" title="标记本题">☆标记</button>
     <button id="qFinish" style="border:none;background:none;color:var(--tx2);font-size:13px;padding:8px 4px;cursor:pointer;white-space:nowrap">结束</button>
   </div>
   <div style="padding:0 18px 8px;display:flex;align-items:center;gap:8px"><div class="tinybar" style="position:relative;flex:1">
@@ -12790,6 +12791,14 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
       <button class="btn" id="btnSyncExport" style="flex:1 1 45%">生成同步码</button>
       <button class="btn" id="btnSyncImport" style="flex:1 1 45%">导入进度</button>
     </div>
+    <button class="btn" id="btnMarkExport" style="width:100%;margin-top:8px">导出标记题（<span id="markCnt">0</span>）</button>
+    <div id="markOut" style="display:none;margin-top:10px">
+      <textarea id="markText" readonly style="width:100%;font-size:11px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--card);color:var(--tx);resize:none" rows="8"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn" id="btnMarkCopy" style="flex:1">复制全部</button>
+        <button class="btn" id="btnMarkHide" style="flex:1;background:var(--line);color:var(--tx)">收起</button>
+      </div>
+    </div>
     <div id="syncOut" style="display:none;margin-top:12px;text-align:center">
       <div id="syncQr" style="display:inline-block;background:#fff;padding:8px;border-radius:10px"></div>
       <textarea id="syncCode" readonly style="width:100%;margin-top:8px;font-size:11px;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--card);color:var(--tx);resize:none" rows="3"></textarea>
@@ -12872,7 +12881,8 @@ var S = {
   qshuf: false, oshuf: false,
   stats: lsGet('stats',{}),        // qid -> {r,w, last, iv} iv=遗忘曲线间隔
   wrong: lsGet('wrong',[]),        // qid list
-  doneOnce: lsGet('doneOnce',{})   // qid -> 1 (做过的题)
+  doneOnce: lsGet('doneOnce',{}),   // qid -> 1 (做过的题)
+  marked: lsGet('marked',[])        // qid list (标记题)
 };
 
 /* ---------- 主题(单套: 白底农信红绿) ---------- */
@@ -13011,8 +13021,23 @@ function syncStartScan(){
     })();
   }).catch(function(){ document.getElementById('syncMsg').textContent='无法打开摄像头，请检查权限或改用粘贴编码'; });
 }
+function exportMarked(){
+  var out=document.getElementById('markOut'), t=document.getElementById('markText');
+  document.getElementById('markCnt').textContent=S.marked.length;
+  if(!S.marked.length){ out.style.display='block'; t.value='还没有标记任何题目。答题时点右上角「☆标记」即可收藏。'; return; }
+  var lines=['共 '+S.marked.length+' 道标记题',''];
+  S.marked.forEach(function(id){
+    var q=BANK[id]; if(!q) return;
+    lines.push((id+1)+'. ['+q.type+'] '+q.q);
+    if(q.type!=='判断题') q.opts.forEach(function(o,j){ lines.push('   '+'ABCDEFG'[j]+'. '+o); });
+    lines.push('   答案：'+(q.type==='判断题'?(q.ans[0]===0?'正确':'错误'):q.ans.map(function(x){return 'ABCDEFG'[x];}).join('、')));
+    lines.push('');
+  });
+  out.style.display='block'; t.value=lines.join('\n');
+}
 function bindSync(){
   var out=document.getElementById('syncOut'), inp=document.getElementById('syncIn');
+  var mc=document.getElementById('markCnt'); if(mc) mc.textContent=S.marked.length;
   document.getElementById('btnSyncExport').addEventListener('click',function(){
     inp.style.display='none'; out.style.display='block';
     var code=syncPack(); document.getElementById('syncCode').value=code; syncRenderQr(code);
@@ -13022,6 +13047,15 @@ function bindSync(){
     document.getElementById('syncMsg').textContent='';
   });
   document.getElementById('btnSyncHide').addEventListener('click',function(){ out.style.display='none'; });
+  document.getElementById('btnMarkExport').addEventListener('click',exportMarked);
+  document.getElementById('btnMarkHide').addEventListener('click',function(){ document.getElementById('markOut').style.display='none'; });
+  document.getElementById('btnMarkCopy').addEventListener('click',function(){
+    var t=document.getElementById('markText'); t.select(); t.setSelectionRange(0,99999);
+    var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t.value); ok=true; }
+    document.getElementById('btnMarkCopy').textContent=ok?'已复制':'长按文本框复制';
+    setTimeout(function(){ document.getElementById('btnMarkCopy').textContent='复制全部'; },1500);
+  });
   document.getElementById('btnSyncCopy').addEventListener('click',function(){
     var t=document.getElementById('syncCode'); t.select(); t.setSelectionRange(0,99999);
     var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
@@ -13213,6 +13247,11 @@ function renderQ(){
   document.getElementById('tinyFill').style.width = progPct+'%';
   var tp=document.getElementById('tinyPct');
   if(tp){ tp.textContent=Math.round(progPct)+'%'; tp.style.left=Math.max(4,Math.min(96,progPct))+'%'; }
+  // 标记按钮状态
+  var mb=document.getElementById('qMark');
+  if(mb){ var isMarked=S.marked.indexOf(q.__id)>=0;
+    mb.textContent=isMarked?'★已标':'☆标记';
+    mb.style.color=isMarked?'var(--ac)':'var(--tx2)'; }
   // 上一题按钮
   document.getElementById('qPrev').style.visibility = (Quiz.mode==='loop')? 'hidden' : (Quiz.i>0? 'visible':'hidden');
   document.getElementById('qNext').textContent = Quiz.i<Quiz.qs.length-1? '下一题':'完成';
@@ -13479,7 +13518,8 @@ function openConf(mode){
       '<button class="chip" data-rf="full">全选类</button>'+
       '<button class="chip" data-rf="notfull">多选·非全选</button>'+
       '<button class="chip" data-rf="right">判断·答案对</button>'+
-      '<button class="chip" data-rf="wrong">判断·答案错</button>';
+      '<button class="chip" data-rf="wrong">判断·答案错</button>'+
+      '<button class="chip" data-rf="marked">标记题库</button>';
   }
   if(spec.types.indexOf('rfilter')>=0){
     document.querySelectorAll('#confRfilter .chip').forEach(function(c){ c.classList.toggle('on', c.dataset.rf===confRfilter); });
@@ -13549,6 +13589,7 @@ function startConf(){
       var q=BANK[idx];
       if(confRfilter==='full') return q.type==='多选题' && q.ans.length===q.opts.length;
       if(confRfilter==='notfull') return q.type==='多选题' && q.ans.length!==q.opts.length;
+      if(confRfilter==='marked') return S.marked.indexOf(idx)>=0;
       if(confRfilter==='right') return q.type==='判断题' && q.ans[0]===0;
       if(confRfilter==='wrong') return q.type==='判断题' && q.ans[0]!==0;
       return true;
@@ -13694,6 +13735,15 @@ document.getElementById('confRfilter').addEventListener('click',function(e){
   var c=e.target.closest('.chip'); if(!c) return;
   confRfilter=c.dataset.rf;
   document.querySelectorAll('#confRfilter .chip').forEach(function(x){ x.classList.toggle('on',x===c); });
+});
+document.getElementById('qMark').addEventListener('click',function(){
+  if(!Quiz||Quiz.done) return;
+  var id=curQ().__id, i=S.marked.indexOf(id);
+  if(i>=0){ S.marked.splice(i,1); } else { S.marked.push(id); }
+  lsSet('marked',S.marked);
+  var mb=document.getElementById('qMark'), isMarked=i<0;
+  mb.textContent=isMarked?'★已标':'☆标记';
+  mb.style.color=isMarked?'var(--ac)':'var(--tx2)';
 });
 document.getElementById('confStart').addEventListener('click',startConf);
 document.getElementById('rHome').addEventListener('click',function(){ renderHome(); show('vHome'); });
