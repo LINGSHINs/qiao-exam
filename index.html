@@ -12671,6 +12671,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     <button class="mode" data-go="forget"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-7 6 7 9 0s6 7 9 0"/></svg></div><b>遗忘曲线</b><span>科学复习，克错为友</span></button>
     <button class="mode" data-go="loop"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 01-4 4H3"/></svg></div><b>循环刷题</b><span>区间循环，错题重现</span></button>
     <button class="mode" data-go="recite"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6s2-2 5-2 5 2 5 2v14s-2-2-5-2-5 2-5 2V6z"/><path d="M22 6s-2-2-5-2-5 2-5 2v14s2-2 5-2 5 2 5 2V6z"/></svg></div><b>背题模式</b><span>直面答案，静心记忆</span></button>
+    <button class="mode" data-go="exam"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><b>考试模式</b><span>单选100·多选15·判断40</span></button>
     <button class="mode" data-go="quick"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></div><b>快答模式</b><span>限时作答，电光石火</span></button>
     <button class="mode" data-go="wrong"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><b>错题集</b><span>拾遗补缺，逐个击破</span></button>
     <button class="mode" data-go="stats"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 20V10M12 20V4M18 20v-7"/></svg></div><b>学习进度</b><span>正确率与进度一览</span></button>
@@ -13151,7 +13152,7 @@ function buildQuiz(list, opt){
   // opt: {instant, auto, timer, loop, recite, mode}
   var qs = list.map(function(idx){ var q = Object.assign({}, BANK[idx]); q.__id=idx; return q; });
   Quiz = {
-    qs: qs, i:0, mode:opt.mode||'seq', ans:{}, right:0, wrongn:0,
+    qs: qs, i:0, mode:opt.mode||'seq', ans:{}, judged:{}, right:0, wrongn:0,
     opt: opt, done:false, timer:null, tleft:0,
     loopQ: [],        // 待重现错题 [{idx(在qs中), need}] need=还需连对次数
     loopGap: opt.gap||5, loopStreak: opt.streak||3,
@@ -13431,6 +13432,19 @@ function finishQuiz(){
   arc.style.strokeDashoffset= 326.7*(1-pct/100);
   arc.setAttribute('stroke', pct>=80?'var(--ok)':pct>=60?'var(--ac)':'var(--bad)');
   document.getElementById('rSub').textContent=(MODE_TITLE[Quiz.mode]||'练习')+' · 共 '+tot+' 题'+(Quiz.mode==='loop'?' · '+Quiz.rounds+' 轮':'');
+  if(Quiz.mode==='exam'){
+    var score=0;
+    Quiz.qs.forEach(function(q,i){
+      var w=S.stats[q.__id]||{};
+      var judged=Quiz.judged[i];
+      if(judged && Quiz.ans[i] && sameSet(Quiz.ans[i],q.ans)){
+        score += q.type==='多选题' ? 1.5 : 0.5;
+      }
+    });
+    var rt=document.getElementById('rPct'); if(rt) rt.textContent=score.toFixed(1);
+    var rl=document.getElementById('rRingLbl'); if(rl) rl.textContent='得分 / 92.5';
+    else { var rv=document.querySelector('.ring'); if(rv && !rv.dataset.lbl){ var d=document.createElement('div'); d.style.fontSize='11px'; d.style.color='var(--tx3)'; d.textContent='满分 92.5'; rv.appendChild(d); rv.dataset.lbl=1; } }
+  }
   var sg=document.getElementById('rStats');
   sg.innerHTML = statCells([
     [Quiz.right,'答对'],[Quiz.wrongn,'答错'],[fmtPct(Quiz.right,tot),'正确率'],
@@ -13469,9 +13483,10 @@ var MODE_CONF = {
   forget:{title:'遗忘曲线', types:['sec','type','rfilter']},
   loop:{title:'循环刷题', types:['sec','type','range','qshuf','gap','streak','rfilter']},
   recite:{title:'背题模式', types:['sec','type','range','count','oshuf','rfilter']},
-  quick:{title:'快答模式', types:['sec','type','count','time','qshuf','oshuf']}
+  quick:{title:'快答模式', types:['sec','type','count','time','qshuf','oshuf']},
+  exam:{title:'考试模式', types:[]}
 };
-var MODE_TITLE={seq:'顺序刷题',paper:'组卷刷题',forget:'遗忘曲线',loop:'循环刷题',recite:'背题模式',quick:'快答模式'};
+var MODE_TITLE={seq:'顺序刷题',paper:'组卷刷题',forget:'遗忘曲线',loop:'循环刷题',recite:'背题模式',quick:'快答模式',exam:'考试模式'};
 var confMode='seq';
 var confSel={sec:{},type:{}};
 function openConf(mode){
@@ -13557,7 +13572,15 @@ function confPool(){
   });
   return pool;
 }
+function startExam(){
+  var singles=[], multis=[], judges=[];
+  BANK.forEach(function(q,i){ if(q.type==='单选题') singles.push(i); else if(q.type==='多选题') multis.push(i); else judges.push(i); });
+  var list=shuffle(singles).slice(0,100).concat(shuffle(multis).slice(0,15), shuffle(judges).slice(0,40));
+  buildQuiz(list, {mode:'exam', instant:false, auto:false, timer:0, recite:false, loop:false});
+  saveSession(); renderQ();
+}
 function startConf(){
+  if(confMode==='exam'){ startExam(); return; }
   var spec=MODE_CONF[confMode];
   var pool=confPool();
   if(!pool.length){ alert('请至少选择一个章节和题型'); return; }
@@ -13725,6 +13748,8 @@ document.getElementById('qSubmit').addEventListener('click',function(){
   if(!a||!a.length){ return; }
   if(q.type==='多选题'){ judgeMulti(); return; }
   var right=q.ans[0]===a[0];
+  Quiz.judged=Quiz.judged||{}; Quiz.judged[Quiz.i]=true;
+  beep(right); buzz(right);
   recAnswer(q,right); recordRound(right);
   renderQ();
 });
